@@ -4,6 +4,10 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const backendRoot = path.join(projectRoot, 'backend')
+const frontendRoot = path.join(projectRoot, 'frontend')
+const aiRoot = path.join(projectRoot, 'ai')
+const pythonCommand = process.env.CAREERHUB_PYTHON || (process.platform === 'win32' ? 'python.exe' : 'python3')
 const children = []
 let stopping = false
 
@@ -39,9 +43,9 @@ function stopChildren(exitCode = 0) {
   process.exit(exitCode)
 }
 
-function launch(label, command, args, extraEnv = {}) {
+function launch(label, command, args, cwd, extraEnv = {}) {
   const child = spawn(command, args, {
-    cwd: projectRoot,
+    cwd,
     env: { ...process.env, ...extraEnv },
     stdio: 'inherit',
     windowsHide: false,
@@ -62,20 +66,16 @@ function launch(label, command, args, extraEnv = {}) {
 
 const backendAlreadyRunning = await isPortOpen(8000)
 const frontendAlreadyRunning = await isPortOpen(5173)
+const aiAlreadyRunning = await isPortOpen(8001)
 
 if (backendAlreadyRunning) {
   console.log('[backend] Уже работает: http://127.0.0.1:8000')
 } else {
-  const sitePackages = path.join(projectRoot, 'myvenv', 'Lib', 'site-packages')
-  const pythonPath = process.env.PYTHONPATH
-    ? `${sitePackages}${path.delimiter}${process.env.PYTHONPATH}`
-    : sitePackages
-
   launch(
     'backend',
-    'py.exe',
-    ['-3.13', 'manage.py', 'runserver', '127.0.0.1:8000', '--noreload'],
-    { PYTHONPATH: pythonPath },
+    pythonCommand,
+    ['manage.py', 'runserver', '127.0.0.1:8000', '--noreload'],
+    backendRoot,
   )
 }
 
@@ -86,12 +86,25 @@ if (frontendAlreadyRunning) {
     'frontend',
     process.execPath,
     [path.join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js'), '--host', 'localhost', '--port', '5173', '--strictPort'],
+    frontendRoot,
+  )
+}
+
+if (aiAlreadyRunning) {
+  console.log('[ai] Уже работает: http://127.0.0.1:8001')
+} else {
+  launch(
+    'ai',
+    pythonCommand,
+    ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8001'],
+    aiRoot,
   )
 }
 
 console.log('CareerHub запускается…')
 console.log('Сайт:    http://localhost:5173')
 console.log('Backend: http://127.0.0.1:8000')
+console.log('AI:      http://127.0.0.1:8001')
 console.log('Для остановки нажмите Ctrl+C.')
 
 if (children.length === 0) {

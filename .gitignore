@@ -25,3 +25,7 @@ staticfiles/
 # Node
 node_modules/
 dist/
+
+# Service-local runtime data
+backend/media/
+frontend/.env.local

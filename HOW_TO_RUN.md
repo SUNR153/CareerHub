@@ -1,57 +1,40 @@
-# Как запустить CareerHub локально
+# Локальный запуск CareerHub
 
-Проект состоит из Django API и React/Vite frontend. На Windows удобнее запустить оба сервиса одной командой.
+Все команды выполняются из корня репозитория.
 
-## Быстрый запуск
+## Установка
 
-Откройте PowerShell в папке `CareerHub` и выполните:
+```powershell
+npm.cmd --prefix frontend ci
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r backend/requirements.txt
+pip install -r ai/requirements.txt
+Copy-Item .env.example .env
+```
+
+Заполните `.env` и убедитесь, что PostgreSQL доступен.
+
+## Запуск всех сервисов
 
 ```powershell
 npm.cmd run dev:all
 ```
 
-После запуска откройте:
+Команда запускает frontend на `5173`, Django на `8000` и AI-сервис на `8001`. Для остановки нажмите `Ctrl+C`.
 
-- сайт: http://localhost:5173
-- API: http://127.0.0.1:8000
-- документация API: http://127.0.0.1:8000/api/docs/
-
-Остановить оба процесса можно сочетанием `Ctrl+C`.
-
-Команда учитывает особенность пути Windows с кириллицей и запускает backend через системный Python, используя установленные пакеты из `myvenv`.
-
-## Первый запуск
-
-Если папка `node_modules` отсутствует:
+Если Python доступен не как `python.exe`, задайте полный путь:
 
 ```powershell
-npm.cmd ci
+$env:CAREERHUB_PYTHON = "C:\path\to\python.exe"
+npm.cmd run dev:all
 ```
 
-Убедитесь, что существует файл `.env` и доступен указанный в нём PostgreSQL.
-
-## Запуск по отдельности
-
-Frontend:
+## Проверки
 
 ```powershell
-npm.cmd run dev
-```
-
-Backend:
-
-```powershell
-$env:PYTHONPATH = "$PWD\myvenv\Lib\site-packages"
-py -3.13 manage.py migrate
-py -3.13 manage.py runserver
-```
-
-Исполняемый файл `myvenv\Scripts\python.exe` в этом расположении использовать не нужно: стандартный launcher Python некорректно обрабатывает текущий путь пользователя с кириллицей.
-
-## Проверка проекта
-
-```powershell
-$env:PYTHONPATH = "$PWD\myvenv\Lib\site-packages"
-py -3.13 manage.py check
 npm.cmd run build
+npm.cmd run lint
+npm.cmd run test:backend
+npm.cmd run test:ai
 ```

@@ -66,13 +66,13 @@ class GenerateResumeSummaryView(APIView):
             'language': request.data.get('language', 'ru'),
         }
         headers = {}
-        service_token = os.getenv('NLP_SERVICE_TOKEN')
+        service_token = os.getenv('AI_SERVICE_TOKEN') or os.getenv('NLP_SERVICE_TOKEN')
         if service_token:
             headers['X-Service-Token'] = service_token
 
         try:
             response = requests.post(
-                f"{os.getenv('NLP_SERVICE_URL', 'http://127.0.0.1:8001').rstrip('/')}/generate-summary",
+                f"{(os.getenv('AI_SERVICE_URL') or os.getenv('NLP_SERVICE_URL', 'http://127.0.0.1:8001')).rstrip('/')}/generate-summary",
                 json=payload,
                 headers=headers,
                 timeout=45,

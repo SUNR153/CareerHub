@@ -19,7 +19,7 @@ logger = logging.getLogger("careerhub.nlp")
 app = FastAPI(title="CareerHub Resume Summary Generator", version="1.0.0")
 
 MODEL = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-RATE_LIMIT = int(os.getenv("NLP_RATE_LIMIT", "10"))
+RATE_LIMIT = int(os.getenv("AI_RATE_LIMIT") or os.getenv("NLP_RATE_LIMIT", "10"))
 RATE_WINDOW_SECONDS = 60
 _requests: dict[str, deque[float]] = defaultdict(deque)
 
@@ -70,7 +70,7 @@ def get_api_key() -> str:
 
 
 def authorize(x_service_token: str | None = Header(default=None)) -> None:
-    expected = os.getenv("NLP_SERVICE_TOKEN")
+    expected = os.getenv("AI_SERVICE_TOKEN") or os.getenv("NLP_SERVICE_TOKEN")
     if expected and x_service_token != expected:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid service token")
 

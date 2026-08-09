@@ -1,9 +1,9 @@
 services:
-  nlp:
+  ai:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: career_hub_nlp
+    container_name: career_hub_ai
     ports:
       - "8001:8000"
     env_file:
