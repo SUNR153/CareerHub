@@ -1,3 +1,4 @@
+
 """
 Django settings for core project.
 
@@ -190,6 +191,7 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:3001',
     'http://localhost:3002',
     'http://localhost:5173',
+    'http://localhost:5174'
 ]
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_HTTPONLY = False 

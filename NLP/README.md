@@ -14,13 +14,19 @@ cp ../.env.example ../.env   # укажите свой GROQ_API
 docker compose up --build
 ```
 
-Сервис будет доступен на `http://127.0.0.1:8000`.
+Сервис будет доступен на `http://127.0.0.1:8001`, Django продолжит работать на `8000`.
 
 ## Переменные окружения
 
 Убедитесь, что задан один из ключей:
 - `GROQ_API`
 - `GROQ_API_KEY`
+
+Дополнительные настройки:
+- `GROQ_MODEL` — модель Groq;
+- `NLP_SERVICE_TOKEN` — общий секрет для запросов Django → NLP;
+- `NLP_RATE_LIMIT` — количество запросов с одного адреса в минуту (по умолчанию 10);
+- `NLP_SERVICE_URL=http://127.0.0.1:8001` — задаётся для Django.
 
 При локальном запуске сервис автоматически подгружает `.env` из корня проекта (`../.env`).  
 При запуске через Docker Compose `.env` монтируется из корня репозитория (`env_file: ../.env`).
@@ -35,7 +41,7 @@ docker compose up --build
 ## Пример запроса
 
 ```bash
-curl -X POST http://127.0.0.1:8000/generate-summary \
+curl -X POST http://127.0.0.1:8001/generate-summary \
   -H "Content-Type: application/json" \
   -d '{
     "educationYear": "2 курс бакалавриата",
@@ -60,5 +66,11 @@ curl -X POST http://127.0.0.1:8000/generate-summary \
 
 ## OpenAPI / Docs
 
-- Swagger UI: `http://127.0.0.1:8000/docs`
-- ReDoc: `http://127.0.0.1:8000/redoc`
+- Swagger UI: `http://127.0.0.1:8001/docs`
+- ReDoc: `http://127.0.0.1:8001/redoc`
+
+## Тесты
+
+```bash
+python -m unittest discover -s tests -v
+```

@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Phone, Globe, X } from 'lucide-react';
+import { Phone, Globe } from 'lucide-react';
 import { api } from '../api/client';
 
-export default function OnboardingModal({ user, updateUser, onClose }) {
+export default function OnboardingModal({ updateUser, onClose }) {
   const [phone, setPhone] = useState('');
   const [github, setGithub] = useState('');
   const [error, setError] = useState('');
@@ -18,7 +18,7 @@ export default function OnboardingModal({ user, updateUser, onClose }) {
       const data = await api.updateProfile({ phone: phone.trim(), github_url: github.trim() || null, profile_completed: true });
       if (updateUser && data) updateUser(data);
       onClose();
-    } catch (e) {
+    } catch {
       setError('Ошибка сохранения');
     } finally {
       setSaving(false);

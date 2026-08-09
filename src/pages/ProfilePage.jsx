@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   GraduationCap, MapPin, X, Plus, Mail, Phone, Globe, Briefcase,
-  Award, Code2, BookOpen, CheckCircle2, Building2, Users, ExternalLink, Edit3, Trash2, Download
+  Award, Code2, BookOpen, CheckCircle2, Building2, Users, ExternalLink, Edit3, Trash2, Download, Sparkles
 } from 'lucide-react';
 import OnboardingModal from '../components/OnboardingModal';
 import AppNavbar from '../components/AppNavbar';
@@ -42,6 +42,7 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
   const [projects, setProjects] = useState(user?.projects || []);
   const [editingProjects, setEditingProjects] = useState(false);
   const [profileError, setProfileError] = useState('');
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   
   // Modal state
   const showOnboarding = user?.role === 'student' || user?.role === 'jobseeker' ? !user?.profile_completed : false;
@@ -117,6 +118,24 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
     setEditingAbout(value => !value);
   };
 
+  const generateSummary = async () => {
+    if (!specialization.trim()) {
+      setProfileError('Сначала укажите желаемую должность или специализацию.');
+      return;
+    }
+    setGeneratingSummary(true);
+    setProfileError('');
+    try {
+      const result = await api.generateResumeSummary(specialization.trim());
+      setAbout(result.text);
+      setEditingAbout(true);
+    } catch (error) {
+      setProfileError(error.message || 'Не удалось сгенерировать описание.');
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
   const finishCityEditing = async () => {
     const value = city.trim();
     setCity(value);
@@ -185,7 +204,7 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
         <div className="h-24 bg-gradient-to-r from-surface-container to-surface-container-high relative">
           <div className="absolute bottom-0 left-6 translate-y-1/2">
             <label className="w-20 h-20 rounded-2xl bg-surface border-4 border-surface flex items-center justify-center text-2xl font-bold text-on-surface shadow-glass-lg select-none overflow-hidden cursor-pointer" style={{ background: '#18181b' }} title="Изменить аватар">
-              {user?.avatar ? <img src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`} alt="Аватар" className="w-full h-full object-cover" /> : initials}
+              {user?.avatar ? <img src={api.mediaUrl(user.avatar)} alt="Аватар" className="w-full h-full object-cover" /> : initials}
               <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
             </label>
           </div>
@@ -201,7 +220,7 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
                   <span className="badge badge-outline">Соискатель</span>
                 )}
                 {user?.test_results && user.test_results.length > 0 ? (
-                  <span className="badge badge-green">{user.test_results.sort((a,b)=>b.score-a.score)[0].level.toUpperCase()}</span>
+                  <span className="badge badge-green">{`${user.test_results.sort((a,b)=>b.score-a.score)[0].level} ${user.test_results.sort((a,b)=>b.score-a.score)[0].tech || specialization || ''}`.trim()}</span>
                 ) : null}
               </div>
               <div className="flex flex-wrap gap-4 text-sm text-on-surface-variant">
@@ -271,7 +290,7 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
                 <Trash2 className="w-3.5 h-3.5" /> Удалить
               </button>}
             </div>
-            {user?.resume_file && <div className="flex items-center gap-3 text-xs"><a href={user.resume_file.startsWith('http') ? user.resume_file : `http://localhost:8000${user.resume_file}`} target="_blank" rel="noreferrer" className="text-primary hover:underline">Открыть загруженное резюме</a><button onClick={deleteUploadedResume} className="text-error hover:underline">Удалить своё резюме</button></div>}
+            {user?.resume_file && <div className="flex items-center gap-3 text-xs"><a href={api.mediaUrl(user.resume_file)} target="_blank" rel="noreferrer" className="text-primary hover:underline">Открыть загруженное резюме</a><button onClick={deleteUploadedResume} className="text-error hover:underline">Удалить своё резюме</button></div>}
           </div>
         </div>
       </div>
@@ -285,9 +304,14 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
               <h2 className="text-base font-semibold text-on-surface flex items-center gap-2">
                 <BookOpen className="w-4 h-4 text-on-surface-variant" /> О себе
               </h2>
-              <button onClick={finishAboutEditing} className="btn-ghost py-1 px-2 text-xs gap-1">
-                <Edit3 className="w-3 h-3" /> {editingAbout ? 'Сохранить' : 'Изменить'}
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={generateSummary} disabled={generatingSummary} className="btn-ghost py-1 px-2 text-xs gap-1">
+                  <Sparkles className="w-3 h-3" /> {generatingSummary ? 'Генерация...' : 'Создать с ИИ'}
+                </button>
+                <button onClick={finishAboutEditing} className="btn-ghost py-1 px-2 text-xs gap-1 !text-on-surface">
+                  <Edit3 className="w-3 h-3" /> {editingAbout ? 'Сохранить' : 'Изменить'}
+                </button>
+              </div>
             </div>
             {editingAbout ? (
               <textarea
@@ -307,7 +331,7 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
               <h2 className="text-base font-semibold text-on-surface flex items-center gap-2">
                 <Briefcase className="w-4 h-4 text-on-surface-variant" /> Опыт работы
               </h2>
-              <button onClick={finishExperienceEditing} className="btn-ghost py-1 px-2 text-xs gap-1">
+              <button onClick={finishExperienceEditing} className="btn-ghost py-1 px-2 text-xs gap-1 !text-on-surface">
                 <Edit3 className="w-3 h-3" /> {editingExperience ? 'Готово' : 'Изменить'}
               </button>
             </div>
@@ -387,7 +411,7 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
               <h2 className="text-base font-semibold text-on-surface flex items-center gap-2">
                 <Code2 className="w-4 h-4 text-on-surface-variant" /> Проекты
               </h2>
-              <button onClick={finishProjectsEditing} className="btn-ghost py-1 px-2 text-xs gap-1">
+              <button onClick={finishProjectsEditing} className="btn-ghost py-1 px-2 text-xs gap-1 !text-on-surface">
                 <Edit3 className="w-3 h-3" /> {editingProjects ? 'Готово' : 'Изменить'}
               </button>
             </div>
@@ -415,16 +439,21 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
                       newProj[i].desc = e.target.value;
                       setProjects(newProj);
                     }} className="input-field w-full text-sm py-1.5 resize-none" rows={2} />
-                    <input required type="text" placeholder="Стек технологий (через запятую, например: React, Node.js)" value={p.tech.join(', ')} onChange={(e) => {
+                    <input required type="text" placeholder="Стек технологий (через запятую, например: React, Node.js)" value={Array.isArray(p.tech) ? p.tech.join(', ') : (p.tech || '')} onChange={(e) => {
                       const newProj = [...projects];
                       newProj[i].tech = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                      setProjects(newProj);
+                    }} className="input-field w-full text-sm py-1.5" />
+                    <input type="url" placeholder="Ссылка на GitHub (необязательно)" value={p.github_url || ''} onChange={(e) => {
+                      const newProj = [...projects];
+                      newProj[i].github_url = e.target.value;
                       setProjects(newProj);
                     }} className="input-field w-full text-sm py-1.5" />
                   </div>
                 ))}
                 <button 
                   onClick={() => {
-                    const newProj = [...projects, { name: '', desc: '', tech: [] }];
+                    const newProj = [...projects, { name: '', desc: '', tech: [], github_url: '' }];
                     setProjects(newProj);
                   }}
                   className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-outline-variant rounded-xl text-on-surface-variant hover:border-primary hover:text-primary transition-colors text-sm font-medium"
@@ -439,8 +468,9 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
                     <div className="font-semibold text-on-surface text-sm mb-1">{p.name}</div>
                     <p className="text-xs text-on-surface-variant mb-3">{p.desc}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {p.tech.map(t => <span key={t} className="skill-tag">{t}</span>)}
+                      {(Array.isArray(p.tech) ? p.tech : String(p.tech || '').split(',')).map(t => t.trim()).filter(Boolean).map(t => <span key={t} className="skill-tag">{t}</span>)}
                     </div>
+                    {p.github_url && <a href={p.github_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 mt-3 text-xs text-primary hover:underline"><ExternalLink className="w-3 h-3" /> GitHub проекта</a>}
                   </div>
                 )) : (
                   <p className="text-sm text-on-surface-variant italic">Проекты не указаны.</p>
@@ -549,7 +579,7 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
                       saveProfile(formData);
                     }
                     setEditingEducation(v => !v);
-                  }} className="btn-ghost py-1 px-2 text-xs gap-1">
+                  }} className="btn-ghost py-1 px-2 text-xs gap-1 !text-on-surface">
                     <Edit3 className="w-3 h-3" /> {editingEducation ? 'Сохранить' : 'Изменить'}
                   </button>
                 </div>
@@ -659,17 +689,18 @@ function StudentProfile({ name, role, onDelete, user, updateUser }) {
 }
 
 // ─── Company Profile ──────────────────────────────────────────────────────────
-function CompanyProfile({ name, onDelete, user, updateUser }) {
+function CompanyProfile({ name, user, updateUser }) {
   const [openVacancies, setOpenVacancies] = useState([]);
-  const [hiringStats, setHiringStats] = useState(null);
   const [editingProfile, setEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [companyForm, setCompanyForm] = useState(() => ({
     name: name || '', about: user?.about || '', city: user?.city || '', industry: user?.industry || '',
     company_size: user?.company_size || '', website: user?.website || '', phone: user?.phone || '',
+    contact_person: user?.contact_person || '', contact_position: user?.contact_position || '',
+    contact_email: user?.contact_email || '',
   }));
   const navigate = useNavigate();
-  useEffect(() => { api.myVacancies().then(items => setOpenVacancies(items.filter(item => item.is_active))).catch(console.error); api.companyHiringStats().then(setHiringStats).catch(console.error); }, []);
+  useEffect(() => { api.myVacancies().then(setOpenVacancies).catch(console.error); }, []);
   const uploadAvatar = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -690,9 +721,6 @@ function CompanyProfile({ name, onDelete, user, updateUser }) {
     }
   };
 
-  const formatLabel = { Remote: 'Удалённо', Hybrid: 'Гибрид', Office: 'В офисе' };
-  const levelVariant = { Junior: 'badge-green', Middle: 'badge-indigo', Senior: 'badge-amber' };
-
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10 animate-slide-up space-y-6">
       {/* Hero */}
@@ -701,7 +729,7 @@ function CompanyProfile({ name, onDelete, user, updateUser }) {
         <div className="px-6 pb-6">
           <div className="-mt-10 mb-4">
             <label className="w-20 h-20 rounded-2xl bg-surface-container border-4 border-surface flex items-center justify-center text-2xl font-bold text-on-surface shadow-glass overflow-hidden cursor-pointer" style={{ borderColor: '#09090b' }} title="Изменить аватар">
-              {user?.avatar ? <img src={user.avatar.startsWith('http') ? user.avatar : `http://localhost:8000${user.avatar}`} alt="Аватар компании" className="w-full h-full object-cover" /> : (name ? name[0] : 'K')}
+              {user?.avatar ? <img src={api.mediaUrl(user.avatar)} alt="Аватар компании" className="w-full h-full object-cover" /> : (name ? name[0] : 'K')}
               <input type="file" accept="image/*" className="hidden" onChange={uploadAvatar} />
             </label>
           </div>
@@ -715,9 +743,6 @@ function CompanyProfile({ name, onDelete, user, updateUser }) {
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {user?.website && <a href={user.website} target="_blank" rel="noreferrer" className="btn-secondary text-xs py-2 px-3"><ExternalLink className="w-3.5 h-3.5" /> Сайт</a>}
-              <button onClick={onDelete} className="btn-secondary !text-error !border-error/20 hover:!bg-error/10 text-xs py-2 px-3">
-                <Trash2 className="w-3.5 h-3.5" /> Удалить
-              </button>
               <button onClick={() => setEditingProfile(value => !value)} className="btn-primary text-xs py-2 px-3">
                 <Edit3 className="w-3.5 h-3.5" /> Редактировать
               </button>
@@ -731,7 +756,9 @@ function CompanyProfile({ name, onDelete, user, updateUser }) {
           <div className="sm:col-span-2 flex items-center justify-between"><h2 className="text-base font-semibold text-on-surface">Редактирование профиля компании</h2><button type="button" onClick={() => setEditingProfile(false)} className="btn-ghost text-xs">Отмена</button></div>
           {[
             ['name', 'Название компании', 'text'], ['industry', 'Индустрия', 'text'], ['city', 'Город', 'text'],
-            ['company_size', 'Размер команды', 'text'], ['website', 'Сайт компании', 'url'], ['phone', 'Телефон', 'tel'],
+            ['company_size', 'Размер команды', 'text'], ['website', 'Сайт компании', 'url'],
+            ['contact_person', 'Контактное лицо', 'text'], ['contact_position', 'Должность контактного лица', 'text'],
+            ['contact_email', 'Email контактного лица', 'email'], ['phone', 'Телефон контактного лица', 'tel'],
           ].map(([field, label, type]) => <label key={field} className="text-sm text-on-surface space-y-1"><span>{label}</span><input required={field === 'name'} type={type} value={companyForm[field]} onChange={e => setCompanyForm(prev => ({ ...prev, [field]: e.target.value }))} className="input-field w-full" /></label>)}
           <label className="sm:col-span-2 text-sm text-on-surface space-y-1"><span>Описание компании</span><textarea value={companyForm.about} onChange={e => setCompanyForm(prev => ({ ...prev, about: e.target.value }))} className="input-field w-full min-h-24" /></label>
           <div className="sm:col-span-2 flex justify-end"><button disabled={savingProfile} className="btn-primary">{savingProfile ? 'Сохранение…' : 'Сохранить'}</button></div>
@@ -768,7 +795,7 @@ function CompanyProfile({ name, onDelete, user, updateUser }) {
           {/* Open vacancies */}
           <div className="glass-card p-6">
             <h2 className="text-base font-semibold text-on-surface flex items-center gap-2 mb-4">
-              <Briefcase className="w-4 h-4 text-on-surface-variant" /> Открытые вакансии
+              <Briefcase className="w-4 h-4 text-on-surface-variant" /> Вакансии компании
               <span className="badge badge-green ml-1">{openVacancies.length}</span>
             </h2>
             <div className="space-y-3">
@@ -778,6 +805,7 @@ function CompanyProfile({ name, onDelete, user, updateUser }) {
                     <div className="font-medium text-on-surface text-sm mb-1">{v.title}</div>
                     <div className="flex items-center gap-2 text-xs text-on-surface-variant">
                       <span className="badge badge-outline">{v.type}</span>
+                      <span className={v.is_active ? 'badge badge-green' : 'badge badge-outline'}>{v.is_active ? 'Активна' : 'Пассивна'}</span>
                       <span className="font-medium text-on-surface">{v.salary}</span>
                     </div>
                   </div>
@@ -797,41 +825,28 @@ function CompanyProfile({ name, onDelete, user, updateUser }) {
             <h2 className="text-base font-semibold text-on-surface mb-4">Контактное лицо</h2>
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-surface-container border border-outline-variant flex items-center justify-center text-on-surface font-bold text-sm">
-                АБ
+                {(user?.contact_person || 'КЛ').split(' ').slice(0, 2).map(part => part[0]).join('').toUpperCase()}
               </div>
               <div>
-                <div className="font-medium text-on-surface text-sm">Айгерим Бекова</div>
-                <div className="text-xs text-on-surface-variant">HR Business Partner</div>
+                <div className="font-medium text-on-surface text-sm">{user?.contact_person || 'Не указано'}</div>
+                <div className="text-xs text-on-surface-variant">{user?.contact_position || 'Должность не указана'}</div>
               </div>
             </div>
             <div className="space-y-2.5">
               <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                <Mail className="w-4 h-4" /> hr@kaspi.kz
+                <Mail className="w-4 h-4" /> {user?.contact_email || 'Email не указан'}
               </div>
               <div className="flex items-center gap-2 text-sm text-on-surface-variant">
-                <Phone className="w-4 h-4" /> +7 (727) 000-00-00
+                <Phone className="w-4 h-4" /> {user?.phone || 'Телефон не указан'}
               </div>
             </div>
           </div>
 
-          {/* Stats */}
+          {/* Paid hiring analytics */}
           <div className="glass-card p-6">
-            <h2 className="text-base font-semibold text-on-surface mb-4">Статистика найма</h2>
-            <div className="space-y-3">
-              {[
-                { label: 'Активных вакансий', value: hiringStats?.active_vacancies ?? '—' },
-                { label: 'Пассивных вакансий', value: hiringStats?.passive_vacancies ?? '—' },
-                { label: 'Просмотров вакансий', value: hiringStats?.vacancy_views ?? '—' },
-                { label: 'Откликов', value: hiringStats?.applications ?? '—' },
-                { label: 'Наймов', value: hiringStats?.hired ?? '—' },
-                { label: 'Конверсия', value: hiringStats ? `${hiringStats.conversion_percent}%` : '—' },
-              ].map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between">
-                  <span className="text-xs text-on-surface-variant">{label}</span>
-                  <span className="text-sm font-bold text-on-surface">{value}</span>
-                </div>
-              ))}
-            </div>
+            <h2 className="text-base font-semibold text-on-surface mb-2">Статистика найма</h2>
+            <p className="text-sm text-on-surface-variant mb-4">Просмотры, отклики, наймы и конверсия доступны в платном тарифе для компаний.</p>
+            <button type="button" onClick={() => navigate('/pricing')} className="btn-primary w-full text-xs">Открыть тарифы</button>
           </div>
         </div>
       </div>
@@ -855,7 +870,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-background">
       <AppNavbar />
-      {isCompany ? <CompanyProfile name={name} onDelete={handleDelete} user={user} updateUser={updateUser} /> : <StudentProfile name={name} role={user?.role} onDelete={handleDelete} user={user} updateUser={updateUser} />}
+      {isCompany ? <CompanyProfile name={name} user={user} updateUser={updateUser} /> : <StudentProfile name={name} role={user?.role} onDelete={handleDelete} user={user} updateUser={updateUser} />}
       <ChatWidget />
     </div>
   );

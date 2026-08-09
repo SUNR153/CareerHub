@@ -1,8 +1,9 @@
-import { pricingPlans, companyPricingPlans, pythonTestQuestions } from '../data/mockData';
+import { pricingPlans, companyPricingPlans } from '../data/mockData';
 
 const ACCESS_TOKEN_KEY = 'careerhub_access_token';
 const REFRESH_TOKEN_KEY = 'careerhub_refresh_token';
-const API_URL = 'http://localhost:8000/api/auth';
+const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8000/api/auth').replace(/\/$/, '');
+const MEDIA_URL = (import.meta.env.VITE_MEDIA_URL || new URL(API_URL).origin).replace(/\/$/, '');
 
 function getAccessToken() {
   return localStorage.getItem(ACCESS_TOKEN_KEY);
@@ -56,7 +57,9 @@ async function request(path, options = {}) {
           .flatMap(([field, messages]) => (Array.isArray(messages) ? messages : [messages]).map(message => `${field}: ${message}`));
         errorMsg = fieldErrors.join(' ') || errorMsg;
       }
-    } catch (e) {}
+    } catch {
+      // Keep the generic message when the response body is not JSON.
+    }
     throw new Error(errorMsg);
   }
 
@@ -73,6 +76,10 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  mediaUrl(path) {
+    if (!path || path.startsWith('http')) return path;
+    return `${MEDIA_URL}${path.startsWith('/') ? path : `/${path}`}`;
+  },
   getAccessToken,
   setAccessToken,
   async login(payload) {
@@ -119,6 +126,9 @@ export const api = {
   deleteUploadedResume() {
     return request('/me/resume/', { method: 'DELETE' });
   },
+  generateResumeSummary(targetRole, language = 'ru') {
+    return request('/me/generate-summary/', { method: 'POST', body: { targetRole, language } });
+  },
   candidateContacts(id) {
     return request(`/candidates/${id}/contacts/`);
   },
@@ -128,14 +138,13 @@ export const api = {
     return Promise.resolve(pricingPlans);
   },
   pythonTest() {
-    // Keep mock for tests
-    return Promise.resolve(pythonTestQuestions);
+    return request('/tests/python/');
   },
   submitPythonTest(answers) {
-    return Promise.resolve({ score: 80, passed: true });
+    return request('/tests/python/', { method: 'POST', body: { answers } });
   },
-  inviteCandidate(candidate) {
-    return Promise.resolve({ success: true });
+  inviteCandidate(candidateId) {
+    return request(`/candidates/${candidateId}/invite/`, { method: 'POST' });
   },
   myVacancies() {
     return request('/my-vacancies/');
@@ -155,6 +164,15 @@ export const api = {
   applyToVacancy(id) {
     return request(`/vacancies/${id}/apply/`, { method: 'POST' });
   },
+  myApplications() {
+    return request('/my-applications/');
+  },
+  notifications() {
+    return request('/notifications/');
+  },
+  markNotificationsRead(notificationId = null) {
+    return request('/notifications/read/', { method: 'PATCH', body: notificationId ? { notification_id: notificationId } : {} });
+  },
   vacancyApplications(id) {
     return request(`/my-vacancies/${id}/applications/`);
   },
@@ -163,6 +181,9 @@ export const api = {
   },
   companyHiringStats() {
     return request('/company-hiring-stats/');
+  },
+  platformAnalytics(months = 12) {
+    return request(`/analytics/?months=${months}`, { skipAuth: true });
   },
   companyProfile(id) {
     return request(`/companies/${id}/`);

@@ -46,7 +46,7 @@ export function AuthProvider({ children }) {
 
       try {
         const data = await api.me();
-        if (active) setUser(persistUser(data.user));
+        if (active) setUser(persistUser(data.user ?? data));
       } catch {
         api.setAccessToken(null);
         persistUser(null);

@@ -1,6 +1,8 @@
 from rest_framework import serializers
-from .models import User, Vacancy, Application
+from .models import User, Vacancy, Application, Notification
 from django.contrib.auth import authenticate
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.validators import URLValidator
 import re
 
 class UserSerializer(serializers.ModelSerializer):
@@ -8,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'role', 'first_name', 'last_name', 'name', 'university', 'student_id', 'about', 'skills', 'education_info', 'diploma_file', 'resume_file', 'phone', 'github_url', 'avatar', 'specialization', 'city', 'contact_sharing_enabled', 'industry', 'company_size', 'website', 'experience', 'projects', 'test_results', 'profile_completed')
+        fields = ('id', 'username', 'email', 'role', 'first_name', 'last_name', 'name', 'university', 'student_id', 'about', 'skills', 'education_info', 'diploma_file', 'resume_file', 'phone', 'github_url', 'avatar', 'specialization', 'city', 'contact_sharing_enabled', 'industry', 'company_size', 'website', 'contact_person', 'contact_position', 'contact_email', 'experience', 'projects', 'test_results', 'profile_completed')
 
     def get_name(self, obj):
         if obj.first_name or obj.last_name:
@@ -19,6 +21,12 @@ class UserSerializer(serializers.ModelSerializer):
         for project in value:
             if not all(str(project.get(field, '')).strip() for field in ('name', 'desc')) or not project.get('tech'):
                 raise serializers.ValidationError('Для каждого проекта обязательны название, описание и стек технологий.')
+            github_url = str(project.get('github_url', '')).strip()
+            if github_url:
+                try:
+                    URLValidator()(github_url)
+                except DjangoValidationError as exc:
+                    raise serializers.ValidationError('Ссылка на GitHub проекта должна быть корректным URL.') from exc
         return value
 
     def validate_experience(self, value):
@@ -65,7 +73,7 @@ class PublicCompanySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'name', 'email', 'about', 'avatar')
+        fields = ('id', 'name', 'email', 'about', 'avatar', 'phone', 'website', 'contact_person', 'contact_position', 'contact_email')
 
     def get_name(self, obj):
         return f"{obj.first_name} {obj.last_name}".strip() or obj.username
@@ -134,5 +142,22 @@ class ApplicationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Application
-        fields = ('id', 'vacancy', 'candidate', 'status', 'created_at')
-        read_only_fields = ('vacancy', 'candidate', 'created_at')
+        fields = ('id', 'vacancy', 'candidate', 'status', 'created_at', 'updated_at')
+        read_only_fields = ('vacancy', 'candidate', 'created_at', 'updated_at')
+
+
+class CandidateApplicationSerializer(serializers.ModelSerializer):
+    vacancy = VacancyWithCompanySerializer(read_only=True)
+    status_label = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = Application
+        fields = ('id', 'vacancy', 'status', 'status_label', 'created_at', 'updated_at')
+
+
+class NotificationSerializer(serializers.ModelSerializer):
+    application_id = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Notification
+        fields = ('id', 'application_id', 'title', 'message', 'is_read', 'created_at')

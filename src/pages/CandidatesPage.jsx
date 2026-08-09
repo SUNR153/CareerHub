@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   MapPin, Search, CheckCircle2, SlidersHorizontal,
-  X, Users, Briefcase, Star, RefreshCw, GraduationCap, UserCircle
+  X, Users, Briefcase, Star, RefreshCw, GraduationCap, UserCircle, Mail
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AppNavbar from '../components/AppNavbar';
@@ -30,6 +30,7 @@ function CandidateCard({ candidate }) {
   const navigate = useNavigate();
   const [invited, setInvited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
 
   const initials = candidate.name
     ? candidate.name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)
@@ -38,12 +39,13 @@ function CandidateCard({ candidate }) {
   const invite = async () => {
     if (invited || submitting) return;
     setSubmitting(true);
+    setInviteError('');
     try {
       await api.inviteCandidate(candidate.id);
-    } catch {
-      // keep optimistic UX
-    } finally {
       setInvited(true);
+    } catch (err) {
+      setInviteError(err.message);
+    } finally {
       setSubmitting(false);
     }
   };
@@ -107,6 +109,7 @@ function CandidateCard({ candidate }) {
           <Mail className="w-3.5 h-3.5" />
           {invited ? 'Приглашение отправлено ✓' : submitting ? 'Отправка...' : 'Пригласить на собеседование'}
         </button>
+        {inviteError && <p className="text-xs text-error">{inviteError}</p>}
       </div>
     </div>
   );

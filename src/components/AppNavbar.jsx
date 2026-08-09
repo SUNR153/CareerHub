@@ -1,17 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, LogOut, Menu, X, ChevronRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../api/client';
 
 const studentNav = [
   { label: 'Вакансии', path: '/vacancies-public' },
+  { label: 'Мои отклики', path: '/my-applications' },
   { label: 'Тесты', path: '/test' },
+  { label: 'Аналитика', path: '/analytics' },
   { label: 'Профиль', path: '/profile' },
 ];
 
 const companyNav = [
   { label: 'Вакансии', path: '/vacancies' },
   { label: 'Кандидаты', path: '/candidates' },
+  { label: 'Аналитика', path: '/analytics' },
   { label: 'Профиль', path: '/profile' },
 ];
 
@@ -20,9 +24,26 @@ export default function AppNavbar() {
   const location = useLocation();
   const { user, logout, isCompany } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const navItems = isCompany ? companyNav : studentNav;
   const currentPath = location.pathname;
+
+  useEffect(() => {
+    if (isCompany || !user) return undefined;
+    let active = true;
+    const loadUnread = async () => {
+      try {
+        const items = await api.notifications();
+        if (active) setUnreadCount(items.filter(item => !item.is_read).length);
+      } catch {
+        if (active) setUnreadCount(0);
+      }
+    };
+    loadUnread();
+    const interval = setInterval(loadUnread, 30_000);
+    return () => { active = false; clearInterval(interval); };
+  }, [isCompany, user]);
 
   const handleLogout = () => {
     logout();
@@ -35,18 +56,18 @@ export default function AppNavbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-outline-variant/40 bg-background/80 backdrop-blur-glass">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+      <header className="sticky top-0 z-40 border-b border-outline-variant/70 bg-background/90 backdrop-blur-glass">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           {/* Logo */}
           <button
             id="navbar-logo"
             className="flex items-center gap-2.5 flex-shrink-0"
             onClick={() => navigate(isCompany ? '/vacancies' : '/vacancies-public')}
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-md bg-on-surface text-inverse-on-surface">
+            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-primary text-white">
               <Sparkles className="w-4 h-4" />
             </div>
-            <span className="text-base font-semibold text-on-surface">CareerHub</span>
+            <span className="text-base font-bold text-on-surface tracking-tight">CareerHub</span>
           </button>
 
           {/* Desktop nav */}
@@ -58,6 +79,7 @@ export default function AppNavbar() {
                 className={currentPath === path ? 'nav-link-active' : 'nav-link'}
               >
                 {label}
+                {path === '/my-applications' && unreadCount > 0 && <span className="ml-1 min-w-5 h-5 px-1 rounded-full bg-error text-white text-[10px] inline-flex items-center justify-center">{unreadCount > 99 ? '99+' : unreadCount}</span>}
               </button>
             ))}
           </nav>
@@ -115,7 +137,8 @@ export default function AppNavbar() {
                   }`}
                 >
                   {label}
-                  <ChevronRight className="w-4 h-4 ml-auto text-outline" />
+                  {path === '/my-applications' && unreadCount > 0 && <span className="ml-auto min-w-5 h-5 px-1 rounded-full bg-error text-white text-[10px] inline-flex items-center justify-center">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+                  <ChevronRight className={`${path === '/my-applications' && unreadCount > 0 ? '' : 'ml-auto'} w-4 h-4 text-outline`} />
                 </button>
               ))}
               <div className="pt-3 border-t border-outline-variant/40">

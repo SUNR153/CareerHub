@@ -14,6 +14,8 @@ import CandidateProfilePage from './pages/CandidateProfilePage';
 import CompanyProfilePage from './pages/CompanyProfilePage';
 import PublicVacanciesPage from './pages/PublicVacanciesPage';
 import PublicVacancyDetailPage from './pages/PublicVacancyDetailPage';
+import MyApplicationsPage from './pages/MyApplicationsPage';
+import AnalyticsPage from './pages/AnalyticsPage';
 
 export default function App() {
   return (
@@ -26,6 +28,7 @@ export default function App() {
           <Route path="/register/jobseeker" element={<JobSeekerRegister />} />
           <Route path="/register/company" element={<CompanyRegister />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/analytics" element={<AnalyticsPage />} />
 
           {/* Student / Job Seeker only */}
           <Route
@@ -38,6 +41,7 @@ export default function App() {
           />
           <Route path="/vacancies-public" element={<ProtectedRoute allowedRoles={['student', 'jobseeker']}><PublicVacanciesPage /></ProtectedRoute>} />
           <Route path="/vacancies/:id" element={<ProtectedRoute allowedRoles={['student', 'jobseeker']}><PublicVacancyDetailPage /></ProtectedRoute>} />
+          <Route path="/my-applications" element={<ProtectedRoute allowedRoles={['student', 'jobseeker']}><MyApplicationsPage /></ProtectedRoute>} />
           <Route
             path="/companies/:id"
             element={

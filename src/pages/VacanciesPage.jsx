@@ -31,11 +31,7 @@ export default function VacanciesPage() {
     requirements: '',
   });
 
-  useEffect(() => {
-    fetchVacancies();
-  }, []);
-
-  const fetchVacancies = async () => {
+  async function fetchVacancies() {
     try {
       setIsLoading(true);
       const data = await api.myVacancies();
@@ -49,7 +45,11 @@ export default function VacanciesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }
+
+  useEffect(() => {
+    fetchVacancies();
+  }, []);
 
   const filteredVacancies = vacancies.filter(vacancy => statusFilter === 'all' || (statusFilter === 'active' ? vacancy.is_active : !vacancy.is_active));
   const toggleApplications = async (vacancyId) => {

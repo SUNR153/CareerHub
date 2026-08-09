@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { pricingPlans, companyPricingPlans } from '../data/mockData';
 import { api } from '../api/client';
 import {
@@ -13,7 +12,6 @@ import { useAuth } from '../context/AuthContext';
 const planIcons = { starter: Sparkles, active: Zap, top: Crown };
 
 function PlanCard({ plan, annual }) {
-  const navigate = useNavigate();
   const Icon = planIcons[plan.id];
   const isHighlighted = plan.highlighted;
   const annualPrice = plan.price ? Math.round(plan.price * 10) : 0;
@@ -89,9 +87,10 @@ function PlanCard({ plan, annual }) {
       <button
         id={`plan-cta-${plan.id}`}
         className={isHighlighted ? 'btn-primary w-full' : 'btn-secondary w-full'}
-        onClick={() => navigate('/register/student')}
+        disabled
+        title={plan.price === 0 ? 'Базовый тариф уже доступен' : 'Подключение тарифа выполняет администратор'}
       >
-        {plan.cta}
+        {plan.price === 0 ? 'Текущий тариф' : 'Подключение через администратора'}
         {plan.id === 'starter' && <ChevronRight className="w-4 h-4" />}
         {plan.id === 'active' && <Zap className="w-4 h-4" />}
         {plan.id === 'top' && <Crown className="w-4 h-4" />}
@@ -227,19 +226,6 @@ export default function PricingPage() {
           ))}
         </div>
 
-        {/* FAQ teaser */}
-        <div className="text-center">
-          <p className="text-outline text-sm">
-            Есть вопросы?{' '}
-            <button
-              id="faq-link"
-              className="text-on-surface hover:underline font-medium"
-            >
-              Напишите нам
-            </button>
-            {' '}или воспользуйтесь ИИ-консультантом ↗
-          </p>
-        </div>
       </main>
 
       <ChatWidget />

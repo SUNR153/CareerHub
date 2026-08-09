@@ -27,7 +27,7 @@ export default function CompanyProfilePage() {
       try {
         const result = await api.companyProfile(id);
         setData(result);
-      } catch (err) {
+      } catch {
         setError('Не удалось загрузить профиль компании.');
       } finally {
         setLoading(false);

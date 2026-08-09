@@ -36,6 +36,9 @@ class User(AbstractUser):
     industry = models.CharField(max_length=120, blank=True, null=True)
     company_size = models.CharField(max_length=80, blank=True, null=True)
     website = models.URLField(blank=True, null=True)
+    contact_person = models.CharField(max_length=150, blank=True, null=True)
+    contact_position = models.CharField(max_length=150, blank=True, null=True)
+    contact_email = models.EmailField(blank=True, null=True)
     experience = models.JSONField(default=list, blank=True)  # [{company, role, start_date, end_date, is_current, desc}]
     projects = models.JSONField(default=list, blank=True)    # [{name, desc, tech:[]}]
     test_results = models.JSONField(default=list, blank=True) # [{tech, level, score, date}]
@@ -98,6 +101,20 @@ class Application(models.Model):
     candidate = models.ForeignKey(User, on_delete=models.CASCADE, related_name='applications')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=('vacancy', 'candidate'), name='unique_vacancy_application')]
+
+
+class Notification(models.Model):
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    application = models.ForeignKey(Application, on_delete=models.CASCADE, related_name='notifications', blank=True, null=True)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+        indexes = [models.Index(fields=('recipient', 'is_read', '-created_at'), name='notification_inbox_idx')]

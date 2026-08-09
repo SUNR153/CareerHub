@@ -48,7 +48,8 @@ export default function LoginPage() {
     setSubmitting(true);
     try {
       const user = await login({ ...form, role });
-      navigate(user.role === 'company' ? '/candidates' : '/companies');
+      const destination = user.role === 'company' ? '/candidates' : (location.state?.search || location.state?.city ? '/vacancies-public' : '/companies');
+      navigate(destination, { state: { search: location.state?.search || '', city: location.state?.city || '' } });
     } catch (err) {
       setErrors({ form: err.message });
     } finally {
@@ -127,7 +128,6 @@ export default function LoginPage() {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <label className="block text-xs font-medium text-on-surface-variant">Пароль</label>
-                <button type="button" className="text-xs text-primary hover:text-primary/80 font-medium">Забыли пароль?</button>
               </div>
               <div className="relative">
                 <input

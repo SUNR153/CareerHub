@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  GraduationCap, MapPin, Briefcase, Award, Code2, BookOpen, CheckCircle2, ArrowLeft, UserCircle
+  GraduationCap, MapPin, Briefcase, Award, Code2, BookOpen, CheckCircle2, ArrowLeft, UserCircle, ExternalLink
 } from 'lucide-react';
 import AppNavbar from '../components/AppNavbar';
 import LoadingState from '../components/ui/LoadingState';
@@ -15,6 +15,7 @@ export default function CandidateProfilePage() {
   const [error, setError] = useState('');
   const [invited, setInvited] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [inviteError, setInviteError] = useState('');
   const [contacts, setContacts] = useState(null);
 
   useEffect(() => {
@@ -22,7 +23,7 @@ export default function CandidateProfilePage() {
       try {
         const data = await api.candidateProfile(id);
         setCandidate(data);
-      } catch (err) {
+      } catch {
         setError('Не удалось загрузить профиль кандидата.');
       } finally {
         setLoading(false);
@@ -66,12 +67,13 @@ export default function CandidateProfilePage() {
   const invite = async () => {
     if (invited || submitting) return;
     setSubmitting(true);
+    setInviteError('');
     try {
       await api.inviteCandidate(candidate.id);
-    } catch {
-      // optimistic UX
-    } finally {
       setInvited(true);
+    } catch (err) {
+      setInviteError(err.message);
+    } finally {
       setSubmitting(false);
     }
   };
@@ -149,6 +151,7 @@ export default function CandidateProfilePage() {
                   <Briefcase className="w-3.5 h-3.5" /> 
                   {invited ? 'Приглашение отправлено ✓' : submitting ? 'Отправка...' : 'Пригласить'}
                 </button>
+                {inviteError && <p className="text-xs text-error">{inviteError}</p>}
               </div>
             </div>
           </div>
@@ -197,8 +200,9 @@ export default function CandidateProfilePage() {
                     <div className="font-semibold text-on-surface text-sm mb-1">{p.name}</div>
                     <p className="text-xs text-on-surface-variant mb-3">{p.desc}</p>
                     <div className="flex flex-wrap gap-1.5">
-                      {p.tech.map(t => <span key={t} className="skill-tag">{t}</span>)}
+                      {(Array.isArray(p.tech) ? p.tech : String(p.tech || '').split(',')).map(t => t.trim()).filter(Boolean).map(t => <span key={t} className="skill-tag">{t}</span>)}
                     </div>
+                    {p.github_url && <a href={p.github_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 mt-3 text-xs text-primary hover:underline"><ExternalLink className="w-3 h-3" /> GitHub проекта</a>}
                   </div>
                 ))}
               </div>
