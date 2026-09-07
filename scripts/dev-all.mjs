@@ -85,7 +85,7 @@ if (frontendAlreadyRunning) {
   launch(
     'frontend',
     process.execPath,
-    [path.join(projectRoot, 'node_modules', 'vite', 'bin', 'vite.js'), '--host', 'localhost', '--port', '5173', '--strictPort'],
+    [path.join(frontendRoot, 'node_modules', 'vite', 'bin', 'vite.js'), '--host', 'localhost', '--port', '5173', '--strictPort'],
     frontendRoot,
   )
 }
